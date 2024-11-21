@@ -17,7 +17,7 @@ input_data_test, time_steps_test, displacement_test, initial_coordinates_test, w
 
 # Initialize trained model
 model = DeepONet(trunk_input_size, branch_input_size, hidden_size, output_size_branch, output_size_trunk)
-model.load_state_dict(torch.load(os.path.join(model_folder, 'time10_coord20_bs100_epochs100.pth'))) # Name of saved and trained model
+model.load_state_dict(torch.load(os.path.join(model_folder, 'time10_coord20_bs100_epochs100.pth'))) # Name of saved and trained model we want to evaluate
 criterion = nn.MSELoss()
 
 #########################################################################################################################################################################################################################################################################################################################################
@@ -39,7 +39,7 @@ input_to_sine_test = torch.tensor(input_to_sine_test, dtype=torch.float32)
 
 test_dataset = TensorDataset(input_to_trunk_test_torch, input_to_branch_test, truth_values_test_torch, input_to_sine_test)
 
-test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(test_dataset)
+test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(model, criterion, test_dataset)
 
 total_test_losses.append(total_test_loss)
 
@@ -53,7 +53,7 @@ input_to_sine_test_w = torch.tensor(input_to_sine_test_w, dtype=torch.float32)
 
 test_dataset_w = TensorDataset(input_to_trunk_test_torch_w, input_to_branch_test_w, truth_values_test_torch_w, input_to_sine_test_w)
 
-test_losses_w, predicted_values_w, total_test_loss_w = evaluate_model_on_test_sample(test_dataset_w)
+test_losses_w, predicted_values_w, total_test_loss_w = evaluate_model_on_test_sample(model, criterion, test_dataset_w)
 
 for t in range(len(time_steps_test[sample][0])):
     rsaw_truth, _ = calculate_rsaw(input_to_trunk_test_w, truth_values_test_w, predicted_values_w, len(initial_wound_coordinates_test[sample]), t)
@@ -72,7 +72,7 @@ plt.xlabel('x')
 plt.ylabel('y')
 plt.title('t = 0')
 plt.legend(loc='upper right')
-plt.show()
+plt.savefig(os.path.join(figure_folder, f'{sample}_conv_t0.png'))
 
 # Plot t=100
 plt.figure(figsize=(8, 8))
@@ -82,7 +82,7 @@ plt.xlabel('x')
 plt.ylabel('y')
 plt.title('t = 100 ')
 plt.legend(loc='upper right')
-plt.show()
+plt.savefig(os.path.join(figure_folder, f'{sample}_conv_t100.png'))
 
 # Plot t max contraction
 plt.figure(figsize=(8, 8))
@@ -92,7 +92,7 @@ plt.xlabel('x')
 plt.ylabel('y')
 plt.title('t = ' + str(round(t_min_rsaw,2)) + ' (max contraction)')
 plt.legend(loc='upper right')
-plt.show()
+plt.savefig(os.path.join(figure_folder, f'{sample}_conv_tmax.png'))
 
 #############################################################################################################################################################################################################################################################################################################################
 # Evaluate trained model on the wound boundary (not nodes in the grid)
@@ -110,7 +110,7 @@ for sample in range(len(input_data_test)):
 
   test_dataset = TensorDataset(input_to_trunk_test_torch, input_to_branch_test, truth_values_test_torch, input_to_sine_test)
 
-  test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(test_dataset)
+  test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(model, criterion, test_dataset)
 
   total_test_losses.append(total_test_loss)
 
@@ -127,7 +127,7 @@ for index in index_min_max:
 
   test_dataset = TensorDataset(input_to_trunk_test_torch, input_to_branch_test, truth_values_test_torch, input_to_sine_test)
 
-  test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(test_dataset)
+  test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(model, criterion, test_dataset)
 
   times_rsaw = np.zeros((len(wound_displacement_test[index][0]),3))
 
@@ -141,12 +141,12 @@ for index in index_min_max:
   times_rsaw = times_rsaw[times_rsaw[:, 0].argsort()]
 
   plt.figure(figsize=(8, 8))
-  plt.plot(times_rsaw[:,0],times_rsaw[:,1], label='Target', linewidth=2.5)
-  plt.plot(times_rsaw[:,0],times_rsaw[:,2], label='Predicted', linewidth=2.5)
+  plt.plot(times_rsaw[:,0],times_rsaw[:,1], label='Target', linewidth=2.5, color='#117A65')
+  plt.plot(times_rsaw[:,0],times_rsaw[:,2], label='Predicted', linewidth=2.5, color='#FFA971')
   plt.xlabel('time (days)')
   plt.ylabel('RSAW')
   plt.legend()
-  plt.show()
+  plt.savefig(os.path.join(figure_folder, f'{index}_rsaw_conv.png'))
 
 ################################################################################################################################################################################################################################################################################################################################################
 # Evaluate on entire test set. Save all truth values and predictions for all samples, for all time
@@ -164,7 +164,7 @@ input_to_sine_test = torch.tensor(input_to_sine_test, dtype=torch.float32)
 
 test_dataset = TensorDataset(input_to_trunk_test_torch, input_to_branch_test, truth_values_test_torch, input_to_sine_test)
 
-test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(test_dataset)
+test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(model, criterion, test_dataset)
 
 combined_truth_values =  truth_values_test
 combined_predicted_values = predicted_values
@@ -180,12 +180,12 @@ for sample in range(len(input_data_test)):
 
   test_dataset = TensorDataset(input_to_trunk_test_torch, input_to_branch_test, truth_values_test_torch, input_to_sine_test)
 
-  test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(test_dataset)
+  test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(model, criterion, test_dataset)
 
   combined_predicted_values = np.concatenate((combined_predicted_values, predicted_values), axis=0)
 
-# Save to a file
-np.savez(os.path.join(local_folder, 'combined_truth_and_predicted_values.npz'), combined_truth_values=combined_truth_values, combined_predicted_values=combined_predicted_values)
+# Save to a file if needed
+# np.savez(os.path.join(local_folder, 'combined_truth_and_predicted_values.npz'), combined_truth_values=combined_truth_values, combined_predicted_values=combined_predicted_values)
 
 # Print the performance metrics
 print(aR2(combined_truth_values, combined_predicted_values))
@@ -199,7 +199,7 @@ plt.plot(np.linspace(-0.9,0,50),np.linspace(-0.9,0,50),'black', label='y = x')
 plt.xlabel('True x-displacement (cm)')
 plt.ylabel('Predicted x-displacement (cm)')
 plt.legend()
-plt.show()
+plt.savefig(os.path.join(figure_folder, 'true_vs_predicted_x_conv.png'))
 
 plt.figure(figsize=(8, 8))
 plt.scatter(combined_truth_values[:,1], combined_predicted_values[:,1], label='(true, pred)', s=5, color='#e88646')
@@ -207,4 +207,4 @@ plt.plot(np.linspace(-0.9,0,50),np.linspace(-0.9,0,50),'black', label='y = x')
 plt.xlabel('True y-displacement (cm)')
 plt.ylabel('Predicted y-displacement (cm)')
 plt.legend()
-plt.show()
+plt.savefig(os.path.join(figure_folder, 'true_vs_predicted_y_conv.png'))

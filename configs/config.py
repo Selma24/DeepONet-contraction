@@ -8,7 +8,8 @@ data_folder = os.path.join(local_folder, 'data/100 days prediction') # Make sure
 data_folder_train = os.path.join(data_folder, 'training')
 data_folder_eval = os.path.join(data_folder, 'evaluation')
 
-model_folder = os.path.join(local_folder, 'model') 
+model_folder = os.path.join(local_folder, 'models') 
+figure_folder = os.path.join(local_folder, 'figs')  
 
 # For the training files
 file_versions = [1, 2, 3, 4, 5]

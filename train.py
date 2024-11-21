@@ -10,10 +10,11 @@ from utils.data_utils import load_and_concatenate_data, prepare_data_for_train
 from models.model import DeepONet
 from configs.config import *
 
-
 # Load and prepare training data
 input_data, time_steps, displacement, initial_coordinates, wound_displacement, initial_wound_coordinates, initial_shape_info, domain_sizes = load_and_concatenate_data(data_folder_train, file_template, file_versions)    
 
+# Standard we take 10 time steps and 20 spatial points per sample
+# Adjust here if needed
 input_to_branch, input_to_trunk, truth_values, input_to_sine = prepare_data_for_train(input_data, displacement, initial_coordinates, time_steps, domain_sizes, initial_shape_info, 20, 10)
 
 # Convert to torch tensors
@@ -82,4 +83,4 @@ plt.yscale('log')
 plt.xlabel('Epoch')
 plt.ylabel('MSE Loss')
 plt.legend()
-plt.show()
+plt.savefig(os.path.join(figure_folder, 'training_and_validation_loss.png'))
