@@ -6,11 +6,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 21})
-from ..utils.data_utils import load_matlab_data, prepare_test_data_per_sample
-from ..models.model import DeepONet
-from ..utils.evaluate_utils import *
-from ..utils.metrics_utils import *
-from ..configs.config import *
+from utils.data_utils import load_matlab_data, prepare_test_data_per_sample
+from models.model import DeepONet
+from utils.evaluate_utils import *
+from utils.metrics_utils import *
+from configs.config import *
     
 # Load testing data
 input_data_test, time_steps_test, displacement_test, initial_coordinates_test, wound_displacement_test, initial_wound_coordinates_test, initial_shape_info_test, domain_sizes_test = load_matlab_data(os.path.join(data_folder_eval, '150_FEM_samples_convex_comb.mat'))

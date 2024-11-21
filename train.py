@@ -6,9 +6,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset, random_split
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 21})
-from ..utils.data_utils import load_and_concatenate_data, prepare_data_for_train
-from ..models.model import DeepONet
-from ..configs.config import *
+from utils.data_utils import load_and_concatenate_data, prepare_data_for_train
+from models.model import DeepONet
+from configs.config import *
 
 
 # Load and prepare training data
