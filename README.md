@@ -1,4 +1,4 @@
-# DeepONet for predicting post-burn contraction
+# DeepONet for predicting post-burn displacement and contraction
 
 Welcome to the repository for the code supporting the preprint [Deep operator network models for predicting post-burn contraction](https://arxiv.org/abs/2411.14555). 
 
