@@ -43,7 +43,11 @@ def prepare_data_for_train(input_FEM, output_FEM, coordinates, time_steps, domai
   truth_values = np.zeros((len(input_to_branch),2))
 
   for i in range(len(input_FEM)): 
-    indices_time = np.random.randint(0, high=len(time_steps[i][0]), size=(num_time_samples,), dtype=int)
+    if time_steps[i][0][-1] > 350: # check if we have T=365
+      index_exceeding_100 = np.argmax(time_steps[i][0] > 100)
+      indices_time = np.random.randint(index_exceeding_100, high=len(time_steps[i][0]), size=(num_time_samples,), dtype=int) # select time steps in (100, 365)
+    else:
+      indices_time = np.random.randint(0, high=len(time_steps[i][0]), size=(num_time_samples,), dtype=int)
     for p in range(num_time_samples):
       indices_space = np.random.randint(0, high=len(coordinates[i]), size=(num_samples_in_domain,), dtype=int)
       input_to_trunk[p*num_samples_in_domain+i*num_time_samples*num_samples_in_domain:(p+1)*num_samples_in_domain+i*num_time_samples*num_samples_in_domain,0] = np.repeat(time_steps[i][0][indices_time[p]], repeats=num_samples_in_domain, axis=0)

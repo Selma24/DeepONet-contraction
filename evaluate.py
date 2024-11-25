@@ -11,17 +11,22 @@ from models.model import DeepONet
 from utils.evaluate_utils import *
 from utils.metrics_utils import *
 from configs.config import *
-    
-# Load testing data
-input_data_test, time_steps_test, displacement_test, initial_coordinates_test, wound_displacement_test, initial_wound_coordinates_test, initial_shape_info_test, domain_sizes_test = load_matlab_data(os.path.join(data_folder_eval, '150_FEM_samples_convex_comb.mat'))
+     
+# Load convex test data t=100 days (150 samples)
+(input_data_test, time_steps_test, displacement_test, initial_coordinates_test, wound_displacement_test, 
+ initial_wound_coordinates_test, initial_shape_info_test, domain_sizes_test) = load_matlab_data(os.path.join(data_folder_eval, '150_FEM_samples_convex_comb.mat'))
+
+# Load convex test data t=365 days (50 samples)
+# (input_data_test, time_steps_test, displacement_test, initial_coordinates_test, wound_displacement_test, 
+#  initial_wound_coordinates_test, initial_shape_info_test, domain_sizes_test) = load_matlab_data(os.path.join(data_folder_eval_t365, 
+#                                                                                                              '50_FEM_samples_convex_comb_t365.mat'))
 
 # Initialize trained model
 model = DeepONet(trunk_input_size, branch_input_size, hidden_size, output_size_branch, output_size_trunk)
-model.load_state_dict(torch.load(os.path.join(model_folder, 'time10_coord20_bs100_epochs100.pth'))) # Name of saved and trained model we want to evaluate
+model.load_state_dict(torch.load(os.path.join(model_folder, 'time10_coord20_bs100_epochs100.pth'))) # Name of saved model we want to evaluate
 criterion = nn.MSELoss()
 
-#########################################################################################################################################################################################################################################################################################################################################
-# Evaluate model on chosen sample from the test set 
+########################################################################################################################################################################
 # Plot the true and predicted coordinates at t=0, t=tmax, t=100
 
 total_test_losses = []
@@ -29,7 +34,10 @@ rsaws_truth = []
 
 sample = 0 # Choose a sample in [0,149]
 
-input_to_branch_test, input_to_trunk_test, truth_values_test, input_to_sine_test = prepare_test_data_per_sample(input_data_test[sample], displacement_test[sample], initial_coordinates_test[sample], time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], len(initial_coordinates_test[sample]))
+(input_to_branch_test, input_to_trunk_test, 
+ truth_values_test, input_to_sine_test) = prepare_test_data_per_sample(input_data_test[sample], displacement_test[sample], initial_coordinates_test[sample], 
+                                                                       time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], 
+                                                                       len(initial_coordinates_test[sample]))
 
 # Convert to torch tensors
 input_to_branch_test = torch.tensor(input_to_branch_test, dtype=torch.float32)
@@ -44,7 +52,11 @@ test_losses, predicted_values, total_test_loss = evaluate_model_on_test_sample(m
 total_test_losses.append(total_test_loss)
 
 # This part evaluates on wound boundary, so that we can determine the time of max contraction (=min RSAW)
-input_to_branch_test_w, input_to_trunk_test_w, truth_values_test_w, input_to_sine_test_w = prepare_test_data_per_sample(input_data_test[sample], wound_displacement_test[sample], initial_wound_coordinates_test[sample], time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], len(initial_wound_coordinates_test[sample]))
+(input_to_branch_test_w, input_to_trunk_test_w, 
+ truth_values_test_w, input_to_sine_test_w) = prepare_test_data_per_sample(input_data_test[sample], wound_displacement_test[sample], 
+                                                                           initial_wound_coordinates_test[sample], time_steps_test[sample], 
+                                                                           domain_sizes_test[sample], initial_shape_info_test[sample], 
+                                                                           len(initial_wound_coordinates_test[sample]))
 
 input_to_branch_test_w = torch.tensor(input_to_branch_test_w, dtype=torch.float32)
 input_to_trunk_test_torch_w = torch.tensor(input_to_trunk_test_w, dtype=torch.float32)
@@ -66,8 +78,12 @@ t_min_rsaw = time_steps_test[sample][0][tindex_min_rsaw]
 
 # Plot t=0
 plt.figure(figsize=(8, 8))
-plt.plot(initial_coordinates_test[sample][:,0]+truth_values_test[0*coord_in_sample:1*coord_in_sample][:,0],initial_coordinates_test[sample][:,1]+truth_values_test[0*coord_in_sample:1*coord_in_sample][:,1], 'o', label='Target', color='black')
-plt.plot(initial_coordinates_test[sample][:,0]+predicted_values[0*coord_in_sample:1*coord_in_sample][:,0],initial_coordinates_test[sample][:,1]+predicted_values[0*coord_in_sample:1*coord_in_sample][:,1], 'o', label='Prediction', color='#FFA971')
+plt.plot(initial_coordinates_test[sample][:,0] + truth_values_test[0*coord_in_sample:1*coord_in_sample][:,0],
+         initial_coordinates_test[sample][:,1] + truth_values_test[0*coord_in_sample:1*coord_in_sample][:,1], 
+         'o', label='Target', color='black')
+plt.plot(initial_coordinates_test[sample][:,0] + predicted_values[0*coord_in_sample:1*coord_in_sample][:,0],
+         initial_coordinates_test[sample][:,1] + predicted_values[0*coord_in_sample:1*coord_in_sample][:,1], 
+         'o', label='Prediction', color='#FFA971')
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('t = 0')
@@ -76,8 +92,12 @@ plt.savefig(os.path.join(figure_folder, f'{sample}_conv_t0.png'))
 
 # Plot t=100
 plt.figure(figsize=(8, 8))
-plt.plot(initial_coordinates_test[sample][:,0]+truth_values_test[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,0],initial_coordinates_test[sample][:,1]+truth_values_test[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,1], 'o', label='Target', color='black')
-plt.plot(initial_coordinates_test[sample][:,0]+predicted_values[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,0],initial_coordinates_test[sample][:,1]+predicted_values[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,1], 'o', label='Prediction', color='#FFA971')
+plt.plot(initial_coordinates_test[sample][:,0] + truth_values_test[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,0],
+         initial_coordinates_test[sample][:,1] + truth_values_test[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,1], 
+         'o', label='Target', color='black')
+plt.plot(initial_coordinates_test[sample][:,0] + predicted_values[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,0],
+         initial_coordinates_test[sample][:,1] + predicted_values[(tsteps_in_sample-1)*coord_in_sample:tsteps_in_sample*coord_in_sample][:,1], 
+         'o', label='Prediction', color='#FFA971')
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('t = 100 ')
@@ -86,22 +106,29 @@ plt.savefig(os.path.join(figure_folder, f'{sample}_conv_t100.png'))
 
 # Plot t max contraction
 plt.figure(figsize=(8, 8))
-plt.plot(initial_coordinates_test[sample][:,0]+truth_values_test[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,0],initial_coordinates_test[sample][:,1]+truth_values_test[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,1], 'o', label='Target', color='black')
-plt.plot(initial_coordinates_test[sample][:,0]+predicted_values[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,0],initial_coordinates_test[sample][:,1]+predicted_values[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,1], 'o', label='Prediction', color='#FFA971')
+plt.plot(initial_coordinates_test[sample][:,0] + truth_values_test[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,0],
+         initial_coordinates_test[sample][:,1] + truth_values_test[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,1], 
+         'o', label='Target', color='black')
+plt.plot(initial_coordinates_test[sample][:,0] + predicted_values[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,0],
+         initial_coordinates_test[sample][:,1]+predicted_values[(tindex_min_rsaw-1)*coord_in_sample:tindex_min_rsaw*coord_in_sample][:,1], 
+         'o', label='Prediction', color='#FFA971')
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('t = ' + str(round(t_min_rsaw,2)) + ' (max contraction)')
 plt.legend(loc='upper right')
 plt.savefig(os.path.join(figure_folder, f'{sample}_conv_tmax.png'))
 
-#############################################################################################################################################################################################################################################################################################################################
+######################################################################################################################################################################
 # Evaluate trained model on the wound boundary (not nodes in the grid)
 # Plot the true and predicted RSAW curves for the best and worst prediction
 
 total_test_losses = []
 
 for sample in range(len(input_data_test)):
-  input_to_branch_test, input_to_trunk_test, truth_values_test, input_to_sine_test = prepare_test_data_per_sample(input_data_test[sample], wound_displacement_test[sample], initial_wound_coordinates_test[sample], time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], len(initial_wound_coordinates_test[sample]))
+  (input_to_branch_test, input_to_trunk_test, 
+   truth_values_test, input_to_sine_test) = prepare_test_data_per_sample(input_data_test[sample], wound_displacement_test[sample], 
+                                                                         initial_wound_coordinates_test[sample], time_steps_test[sample], domain_sizes_test[sample], 
+                                                                         initial_shape_info_test[sample], len(initial_wound_coordinates_test[sample]))
 
   input_to_branch_test = torch.tensor(input_to_branch_test, dtype=torch.float32)
   input_to_trunk_test_torch = torch.tensor(input_to_trunk_test, dtype=torch.float32)
@@ -118,7 +145,11 @@ for sample in range(len(input_data_test)):
 index_min_max = [total_test_losses.index(min(total_test_losses)), total_test_losses.index(max(total_test_losses))]
 
 for index in index_min_max:
-  input_to_branch_test, input_to_trunk_test, truth_values_test, input_to_sine_test = prepare_test_data_per_sample(input_data_test[index], wound_displacement_test[index], initial_wound_coordinates_test[index], time_steps_test[index], domain_sizes_test[index], initial_shape_info_test[index], len(initial_wound_coordinates_test[index]))
+  (input_to_branch_test, input_to_trunk_test, 
+   truth_values_test, input_to_sine_test) = prepare_test_data_per_sample(input_data_test[index], wound_displacement_test[index], 
+                                                                         initial_wound_coordinates_test[index], time_steps_test[index], 
+                                                                         domain_sizes_test[index], initial_shape_info_test[index], 
+                                                                         len(initial_wound_coordinates_test[index]))
 
   input_to_branch_test = torch.tensor(input_to_branch_test, dtype=torch.float32)
   input_to_trunk_test_torch = torch.tensor(input_to_trunk_test, dtype=torch.float32)
@@ -148,14 +179,17 @@ for index in index_min_max:
   plt.legend()
   plt.savefig(os.path.join(figure_folder, f'{index}_rsaw_conv.png'))
 
-################################################################################################################################################################################################################################################################################################################################################
+##################################################################################################################################################################
 # Evaluate on entire test set. Save all truth values and predictions for all samples, for all time
 # Plot true vs predicted (scatter plots) for entire test set
 # Print the performance metrics
 
 sample = 0
 
-input_to_branch_test, input_to_trunk_test, truth_values_test, input_to_sine_test = prepare_test_data_per_sample(input_data_test[sample], displacement_test[sample], initial_coordinates_test[sample], time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], len(initial_coordinates_test[sample]))
+(input_to_branch_test, input_to_trunk_test, 
+ truth_values_test, input_to_sine_test) = prepare_test_data_per_sample(input_data_test[sample], displacement_test[sample], initial_coordinates_test[sample], 
+                                                                       time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], 
+                                                                       len(initial_coordinates_test[sample]))
 
 input_to_branch_test = torch.tensor(input_to_branch_test, dtype=torch.float32)
 input_to_trunk_test_torch = torch.tensor(input_to_trunk_test, dtype=torch.float32)
@@ -170,7 +204,10 @@ combined_truth_values =  truth_values_test
 combined_predicted_values = predicted_values
 
 for sample in range(len(input_data_test)):
-  input_to_branch_test, input_to_trunk_test, truth_values_test, input_to_sine_test = prepare_test_data_per_sample(input_data_test[sample], displacement_test[sample], initial_coordinates_test[sample], time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], len(initial_coordinates_test[sample]))
+  (input_to_branch_test, input_to_trunk_test, 
+   truth_values_test, input_to_sine_test) = prepare_test_data_per_sample(input_data_test[sample], displacement_test[sample], initial_coordinates_test[sample], 
+                                                                         time_steps_test[sample], domain_sizes_test[sample], initial_shape_info_test[sample], 
+                                                                         len(initial_coordinates_test[sample]))
   combined_truth_values = np.concatenate((combined_truth_values, truth_values_test), axis=0)
 
   input_to_branch_test = torch.tensor(input_to_branch_test, dtype=torch.float32)
@@ -185,7 +222,8 @@ for sample in range(len(input_data_test)):
   combined_predicted_values = np.concatenate((combined_predicted_values, predicted_values), axis=0)
 
 # Save to a file if needed
-# np.savez(os.path.join(local_folder, 'combined_truth_and_predicted_values.npz'), combined_truth_values=combined_truth_values, combined_predicted_values=combined_predicted_values)
+# np.savez(os.path.join(local_folder, 'combined_truth_and_predicted_values.npz'), 
+#          combined_truth_values=combined_truth_values, combined_predicted_values=combined_predicted_values)
 
 # Print the performance metrics
 print(aR2(combined_truth_values, combined_predicted_values))

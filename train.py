@@ -11,11 +11,24 @@ from models.model import DeepONet
 from configs.config import *
 
 # Load and prepare training data
-input_data, time_steps, displacement, initial_coordinates, wound_displacement, initial_wound_coordinates, initial_shape_info, domain_sizes = load_and_concatenate_data(data_folder_train, file_template, file_versions)    
+(input_data, time_steps, displacement, initial_coordinates, wound_displacement, 
+ initial_wound_coordinates, initial_shape_info, domain_sizes)= load_and_concatenate_data(data_folder_train, file_template, file_versions)    
 
-# Standard we take 10 time steps and 20 spatial points per sample
+# Standardly we take 10 time steps and 20 spatial points per sample
 # Adjust here if needed
-input_to_branch, input_to_trunk, truth_values, input_to_sine = prepare_data_for_train(input_data, displacement, initial_coordinates, time_steps, domain_sizes, initial_shape_info, 20, 10)
+(input_to_branch, input_to_trunk, truth_values, input_to_sine) = prepare_data_for_train(input_data, displacement, initial_coordinates, 
+                                                                                        time_steps, domain_sizes, initial_shape_info, 20, 10)
+
+# Uncomment if t=365 data needs to be added to training
+# (input_data_t365, time_steps_t365, displacement_t365, initial_coordinates_t365, wound_displacement_t365, 
+#  initial_wound_coordinates_t365, initial_shape_info_t365, domain_sizes_t365) = load_and_concatenate_data(data_folder_train_t365, file_template_t365, file_versions_t365)
+# input_to_branch_t365, input_to_trunk_t365, truth_values_t365, input_to_sine_t365 = prepare_data_for_train(input_data_t365, displacement_t365, initial_coordinates_t365, 
+#                                                                                                           time_steps_t365, domain_sizes_t365, initial_shape_info_t365, 
+#                                                                                                           20, 10)
+# input_to_branch = np.concatenate((input_to_branch, input_to_branch_t365), axis=0)
+# input_to_trunk = np.concatenate((input_to_trunk, input_to_trunk_t365), axis=0)
+# truth_values = np.concatenate((truth_values, truth_values_t365), axis=0)
+# input_to_sine = np.concatenate((input_to_sine, input_to_sine_t365), axis=0)
 
 # Convert to torch tensors
 input_to_branch = torch.tensor(input_to_branch, dtype=torch.float32)
@@ -31,8 +44,12 @@ validation_size = len(dataset) - train_size
 
 train_dataset, validation_dataset = random_split(dataset, [train_size, validation_size])
 
-# Initialize model and train
+# Initialize model
 model = DeepONet(trunk_input_size, branch_input_size, hidden_size, output_size_branch, output_size_trunk)
+
+# Load saved model as initialization if necessary
+# saved_model = os.path.join(model_folder, 'time10_coord20_bs100_epochs100.pth')
+# model.load_state_dict(torch.load(saved_model))
 
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -47,30 +64,35 @@ train_losses = []
 validation_losses = []
 
 for epoch in range(1,num_epochs+1):
+    model.train()
+    train_loss = 0.0
     for trunk_batch, branch_batch, truth_batch, sine_batch in train_dataloader:
         output_train = model(trunk_batch, branch_batch, sine_batch)
-
         loss_train = criterion(output_train, truth_batch)
 
         optimizer.zero_grad()
         loss_train.backward()
         optimizer.step()
 
+        train_loss += loss_train.item()
+
+    train_loss /= len(train_dataloader)
+
+    model.eval()
+    validation_loss = 0.0
     with torch.no_grad():
         for trunk_batch, branch_batch, truth_batch, sine_batch in validation_dataloader:
-
             output_validation = model(trunk_batch, branch_batch, sine_batch)
-
-
             loss_validation = criterion(output_validation, truth_batch)
+            validation_loss += loss_validation.item()
 
-    train_losses.append(loss_train.item())
-    validation_losses.append(loss_validation.item())
+    validation_loss /= len(validation_dataloader)
 
-    if epoch == 1:
-      print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {loss_train.item():.4f}, Validation Loss: {loss_validation.item():.4f}')
-    if epoch % 50 ==0:
-      print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {loss_train.item():.4f}, Validation Loss: {loss_validation.item():.4f}')
+    train_losses.append(train_loss)
+    validation_losses.append(validation_loss)
+
+    if epoch == 1 or epoch % 50 == 0:
+        print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {train_loss:.8f}, Validation Loss: {validation_loss:.8f}')
 
 # Save trained model
 torch.save(model.state_dict(), os.path.join(model_folder, 'time10_coord20_bs100_epochs100.pth')) # Change name if needed
